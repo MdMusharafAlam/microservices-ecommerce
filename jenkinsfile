@@ -1,0 +1,131 @@
+pipeline {
+
+    agent any
+
+    environment {
+        BACKEND_IMAGE  = '8787490748/user_api'
+        FRONTEND_IMAGE = '8787490748/commerceapiui'
+
+        DOCKER_CREDENTIALS = 'dockerhub-credentials'
+        K8S_NAMESPACE = 'commerce'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                echo 'Checking out source code from GitHub...'
+                checkout scm
+            }
+        }
+
+        stage('Build Backend Image') {
+            steps {
+                echo 'Building backend Docker image...'
+
+                bat """
+                    docker build -t %BACKEND_IMAGE%:%BUILD_NUMBER% .\\services
+                """
+            }
+        }
+
+        stage('Build Frontend Image') {
+            steps {
+                echo 'Building frontend Docker image...'
+
+                bat """
+                    docker build -t %FRONTEND_IMAGE%:%BUILD_NUMBER% .\\ui
+                """
+            }
+        }
+
+        stage('Login to Docker Hub') {
+            steps {
+                echo 'Logging in to Docker Hub...'
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: "${DOCKER_CREDENTIALS}",
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
+                    bat """
+                        echo "%DOCKER_PASS%" | docker login -u "%DOCKER_USER%" --password-stdin
+                    """
+                }
+            }
+        }
+
+        stage('Push Images') {
+            steps {
+                echo 'Pushing images to Docker Hub...'
+
+                bat """
+                    docker push %BACKEND_IMAGE%:%BUILD_NUMBER%
+                    docker push %FRONTEND_IMAGE%:%BUILD_NUMBER%
+                """
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                echo 'Deploying application to Kubernetes...'
+
+                bat """
+                    kubectl apply -f k8s\\namespace.yaml
+
+                    kubectl apply -f k8s\\configmap.yaml
+
+                    kubectl apply -f k8s\\db-pvc.yaml
+                    kubectl apply -f k8s\\db-service.yaml
+                    kubectl apply -f k8s\\db-deployment.yaml
+
+                    kubectl apply -f k8s\\backend-service.yaml
+                    kubectl apply -f k8s\\frontend-service.yaml
+
+                    kubectl apply -f k8s\\backend-deployment.yaml
+                    kubectl apply -f k8s\\frontend-deployment.yaml
+
+                    kubectl set image deployment/backend backend=%BACKEND_IMAGE%:%BUILD_NUMBER% -n %K8S_NAMESPACE%
+
+                    kubectl set image deployment/frontend frontend=%FRONTEND_IMAGE%:%BUILD_NUMBER% -n %K8S_NAMESPACE%
+                """
+            }
+        }
+
+        stage('Verify Kubernetes Deployment') {
+            steps {
+                echo 'Checking Kubernetes deployment...'
+
+                bat """
+                    kubectl rollout status deployment/backend -n %K8S_NAMESPACE% --timeout=180s
+
+                    kubectl rollout status deployment/frontend -n %K8S_NAMESPACE% --timeout=180s
+
+                    kubectl rollout status deployment/db -n %K8S_NAMESPACE% --timeout=180s
+
+                    kubectl get pods -n %K8S_NAMESPACE%
+
+                    kubectl get services -n %K8S_NAMESPACE%
+                """
+            }
+        }
+    }
+
+    post {
+
+        success {
+            echo '======================================'
+            echo 'CI/CD PIPELINE COMPLETED SUCCESSFULLY'
+            echo '======================================'
+        }
+
+        failure {
+            echo '======================================'
+            echo 'CI/CD PIPELINE FAILED'
+            echo 'Check the Jenkins Console Output.'
+            echo '======================================'
+        }
+    }
+}
