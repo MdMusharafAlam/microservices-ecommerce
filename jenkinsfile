@@ -37,23 +37,7 @@ pipeline {
             }
         }
 
-   stage('Login to Docker Hub') {
-    steps {
-        echo 'Logging in to Docker Hub...'
-
-        withCredentials([
-            usernamePassword(
-                credentialsId: 'voterapp_credentials',
-                usernameVariable: 'DOCKER_USER',
-                passwordVariable: 'DOCKER_PASS'
-            )
-        ]) {
-            powershell '''
-                $env:DOCKER_PASS | docker login --username $env:DOCKER_USER --password-stdin
-            '''
-        }
-    }
-}
+  
 
         stage('Push Images') {
             steps {
