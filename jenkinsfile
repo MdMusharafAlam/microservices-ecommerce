@@ -6,7 +6,7 @@ pipeline {
         BACKEND_IMAGE  = '8787490748/user_api'
         FRONTEND_IMAGE = '8787490748/commerceapiui'
 
-        DOCKER_CREDENTIALS = 'used_in_all'
+        DOCKER_CREDENTIALS = 'Jenkins_used_only'
         K8S_NAMESPACE = 'commerce'
     }
 
