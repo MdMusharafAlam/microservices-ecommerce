@@ -6,7 +6,7 @@ pipeline {
         BACKEND_IMAGE  = '8787490748/user_api'
         FRONTEND_IMAGE = '8787490748/commerceapiui'
 
-        DOCKER_CREDENTIALS = 'dockerhub-credentials'
+        DOCKER_CREDENTIALS = 'voterapp_credentials'
         K8S_NAMESPACE = 'commerce'
     }
 
@@ -39,13 +39,13 @@ pipeline {
             }
         }
 
-     stage('Login to Docker Hub') {
+    stage('Login to Docker Hub') {
     steps {
         echo 'Logging in to Docker Hub...'
 
         withCredentials([
             usernamePassword(
-                credentialsId: 'dockerhub-credentials',
+                credentialsId: "${DOCKER_CREDENTIALS}",
                 usernameVariable: 'DOCKER_USER',
                 passwordVariable: 'DOCKER_PASS'
             )
