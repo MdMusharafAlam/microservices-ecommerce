@@ -43,7 +43,7 @@ pipeline {
 
         withCredentials([
             usernamePassword(
-                credentialsId: 'dockerhub_login',
+                credentialsId: 'voterapp_credentials',
                 usernameVariable: 'DOCKER_USER',
                 passwordVariable: 'DOCKER_PASS'
             )
