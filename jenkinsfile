@@ -41,7 +41,7 @@ pipeline {
 
     stage('Login to Docker Hub') {
     steps {
-        echo 'Logging in to Docker Hub...'
+        echo 'Checking Jenkins Docker credential binding...'
 
         withCredentials([
             usernamePassword(
@@ -51,7 +51,8 @@ pipeline {
             )
         ]) {
             powershell '''
-                $env:DOCKER_PASS | docker login -u $env:DOCKER_USER --password-stdin
+                Write-Host "Jenkins Docker username: $env:DOCKER_USER"
+                Write-Host "Credential password length: $($env:DOCKER_PASS.Length)"
             '''
         }
     }
